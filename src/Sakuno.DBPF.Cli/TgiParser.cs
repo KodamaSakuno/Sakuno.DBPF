@@ -7,7 +7,7 @@ internal static class TgiParser
     internal static Tgi Parse(string value)
     {
         var parts = value.Split('-');
-        if (parts.Length != 3 || parts.Any(part => part.Length != 8))
+        if (parts.Length != 3 || parts.Any(part => part.Length != 8 || part.Any(character => !Uri.IsHexDigit(character))))
             throw new FormatException("TGI must use the TTTTTTTT-GGGGGGGG-IIIIIIII hexadecimal format.");
 
         try

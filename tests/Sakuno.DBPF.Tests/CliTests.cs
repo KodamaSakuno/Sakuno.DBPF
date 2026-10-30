@@ -101,11 +101,14 @@ public sealed class CliTests : IDisposable
         var path = WriteArchive("archive.dat", TestArchive.Create((ResourceTgi, [1])));
 
         var invalidTgi = Run("inspect", path, "invalid");
+        var whitespaceTgi = Run("inspect", path, "1122334 -55667788-99AABBCC");
         var missingFile = Run("info", Path.Combine(_directory, "missing.dat"));
         var invalidLimit = Run("list", path, "--limit", "0");
 
         Assert.Equal(1, invalidTgi.ExitCode);
         Assert.Contains("TGI must use", invalidTgi.Error);
+        Assert.Equal(1, whitespaceTgi.ExitCode);
+        Assert.Contains("TGI must use", whitespaceTgi.Error);
         Assert.Equal(1, missingFile.ExitCode);
         Assert.Contains("Error:", missingFile.Error);
         Assert.Equal(1, invalidLimit.ExitCode);
