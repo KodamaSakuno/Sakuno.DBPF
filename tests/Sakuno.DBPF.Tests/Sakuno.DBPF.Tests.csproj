@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sakuno.DBPF\Sakuno.DBPF.csproj" />
+    <ProjectReference Include="..\..\src\Sakuno.DBPF.Cli\Sakuno.DBPF.Cli.csproj" />
   </ItemGroup>
 
 </Project>

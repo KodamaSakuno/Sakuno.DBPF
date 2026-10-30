@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Sakuno.DBPF.Cli/Sakuno.DBPF.Cli.csproj" />
     <Project Path="src/Sakuno.DBPF/Sakuno.DBPF.csproj" />
   </Folder>
   <Folder Name="/tests/">

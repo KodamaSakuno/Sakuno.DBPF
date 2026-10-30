@@ -45,3 +45,17 @@ resource.CopyTo(output);
 `OpenDecompressed` decompresses resources listed in the DBDF directory and returns stored bytes directly for other resources. Use `OpenRead` when the original stored bytes are required.
 
 `DbpfArchive.Open` takes ownership of the input stream by default, including when opening fails. Pass `leaveOpen: true` when the caller retains ownership or needs to reuse the stream after disposing the archive.
+
+## Command-line tool
+
+Run the CLI through its project:
+
+```bash
+dotnet run --project src/Sakuno.DBPF.Cli/Sakuno.DBPF.Cli.csproj -- info SimCity_1.dat
+dotnet run --project src/Sakuno.DBPF.Cli/Sakuno.DBPF.Cli.csproj -- list SimCity_1.dat --offset 0 --limit 20
+dotnet run --project src/Sakuno.DBPF.Cli/Sakuno.DBPF.Cli.csproj -- inspect SimCity_1.dat TTTTTTTT-GGGGGGGG-IIIIIIII
+dotnet run --project src/Sakuno.DBPF.Cli/Sakuno.DBPF.Cli.csproj -- check SimCity_1.dat
+dotnet run --project src/Sakuno.DBPF.Cli/Sakuno.DBPF.Cli.csproj -- extract SimCity_1.dat TTTTTTTT-GGGGGGGG-IIIIIIII resource.bin
+```
+
+Replace each `TTTTTTTT-GGGGGGGG-IIIIIIII` placeholder with the resource's hexadecimal Type, Group, and Instance IDs. `check` reads every resource and validates output lengths. `extract` writes decompressed bytes by default; add `--raw` for stored bytes. Existing destination files are preserved unless `--overwrite` is specified.
