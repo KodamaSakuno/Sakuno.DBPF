@@ -42,4 +42,6 @@ using var output = File.Create("resource.bin");
 resource.CopyTo(output);
 ```
 
-`OpenDecompressed` decompresses resources listed in the DBDF directory and returns stored bytes directly for other resources. Use `OpenRead` when the original stored bytes are required. Pass `leaveOpen: true` to `DbpfArchive.Open` when the caller needs to reuse the input stream after disposing the archive.
+`OpenDecompressed` decompresses resources listed in the DBDF directory and returns stored bytes directly for other resources. Use `OpenRead` when the original stored bytes are required.
+
+`DbpfArchive.Open` takes ownership of the input stream by default, including when opening fails. Pass `leaveOpen: true` when the caller retains ownership or needs to reuse the stream after disposing the archive.

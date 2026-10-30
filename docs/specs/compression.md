@@ -58,7 +58,7 @@ Commands begin at offset `0x09`. The first command byte is `b0`; subsequent comm
 
 Back-references may overlap their output. Bytes are therefore copied forward one at a time. A distance of one repeats the last produced byte.
 
-The reader rejects truncated commands or literals, output overruns, back-references before the beginning of the output, a missing final command, trailing bytes after the final command, and a final output size different from either declared size. Allocation is limited to one resource's declared decompressed size; sizes that cannot be represented by the managed array implementation are rejected.
+The reader rejects truncated commands or literals, output overruns, back-references before the beginning of the output, a missing final command, trailing bytes after the final command, and a final output size different from either declared size. Stored bytes are read from the bounded resource stream rather than copied into a resource-sized input array. A first pass validates the complete command structure and output length without allocating the output; only a valid stream proceeds to output allocation and decoding. Memory for decoded data is therefore limited to one resource's declared decompressed size.
 
 ## Sources and license status
 

@@ -35,6 +35,20 @@ public sealed class DbpfArchive : IDisposable
     public static DbpfArchive Open(Stream stream, bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
+        try
+        {
+            return OpenCore(stream, leaveOpen);
+        }
+        catch
+        {
+            if (!leaveOpen)
+                stream.Dispose();
+            throw;
+        }
+    }
+
+    private static DbpfArchive OpenCore(Stream stream, bool leaveOpen)
+    {
         if (!stream.CanRead)
             throw new ArgumentException("The DBPF stream must be readable.", nameof(stream));
         if (!stream.CanSeek)
@@ -141,14 +155,8 @@ public sealed class DbpfArchive : IDisposable
         if (!entry.IsCompressed)
             return new BoundedReadStream(_stream, _syncRoot, entry.Offset, entry.Size);
 
-        if (entry.Size > int.MaxValue)
-            throw new NotSupportedException($"Resource {identifier} is too large to read into a managed byte array.");
-
-        var input = new byte[(int)entry.Size];
-        using (var stored = new BoundedReadStream(_stream, _syncRoot, entry.Offset, entry.Size))
-            stored.ReadExactly(input);
-
-        var output = RefPackDecompressor.Decompress(input, entry.UncompressedSize.GetValueOrDefault(), identifier);
+        using var stored = new BoundedReadStream(_stream, _syncRoot, entry.Offset, entry.Size);
+        var output = RefPackDecompressor.Decompress(stored, entry.UncompressedSize.GetValueOrDefault(), identifier);
         return new MemoryStream(output, writable: false);
     }
 

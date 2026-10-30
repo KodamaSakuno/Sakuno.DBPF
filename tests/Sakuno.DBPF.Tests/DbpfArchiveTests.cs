@@ -110,6 +110,20 @@ public sealed class DbpfArchiveTests
         Assert.Throws<ObjectDisposedException>(() => archive.GetEntry(FirstTgi));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenFailure_HonorsLeaveOpen(bool leaveOpen)
+    {
+        var bytes = TestArchive.Create();
+        "NOPE"u8.CopyTo(bytes);
+        using var stream = new MemoryStream(bytes);
+
+        Assert.Throws<InvalidDataException>(() => DbpfArchive.Open(stream, leaveOpen));
+
+        Assert.Equal(leaveOpen, stream.CanRead);
+    }
+
     [Fact]
     public void GetEntry_UnknownIdentifierThrows()
     {

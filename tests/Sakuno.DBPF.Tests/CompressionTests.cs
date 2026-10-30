@@ -262,6 +262,102 @@ public sealed class CompressionTests
         return directory;
     }
 
+    [Fact]
+    public void OpenDecompressed_InvalidHeaderDoesNotReadWholeStoredResource()
+    {
+        var payload = CreatePayload([0xFC], 0);
+        payload[4] = 0x11;
+        var directory = CreateDirectory((ResourceTgi, 0));
+        var bytes = TestArchive.Create((ResourceTgi, payload), (DirectoryTgi, directory));
+        const uint storedSize = 64 * 1024 * 1024;
+        TestArchive.WriteUInt32(bytes, TestArchive.HeaderSize, storedSize);
+        var indexOffset = TestArchive.HeaderSize + payload.Length + directory.Length;
+        TestArchive.WriteUInt32(bytes, indexOffset + 16, storedSize);
+        using var stream = new VirtualLengthStream(bytes, TestArchive.HeaderSize + (long)storedSize);
+        using var archive = DbpfArchive.Open(stream, leaveOpen: true);
+
+        Assert.Throws<NotSupportedException>(() => archive.OpenDecompressed(ResourceTgi));
+    }
+
+    [Fact]
+    public void OpenDecompressed_InvalidCommandsDoNotAllocateDeclaredOutput()
+    {
+        const int declaredSize = 0xFFFFFF;
+        var payload = CreatePayload([0xFC], declaredSize);
+        using var archive = OpenCompressed(payload, declaredSize);
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Throws<InvalidDataException>(() => archive.OpenDecompressed(ResourceTgi));
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.True(allocated < 1_000_000, $"The failing operation allocated {allocated} bytes.");
+    }
+
+    private sealed class VirtualLengthStream : Stream
+    {
+        private readonly byte[] _bytes;
+        private readonly long _length;
+        private long _position;
+
+        internal VirtualLengthStream(byte[] bytes, long length)
+        {
+            _bytes = bytes;
+            _length = length;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _length;
+
+        public override long Position
+        {
+            get => _position;
+            set
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(value);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value, _length);
+                _position = value;
+            }
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            ValidateBufferArguments(buffer, offset, count);
+            return Read(buffer.AsSpan(offset, count));
+        }
+
+        public override int Read(Span<byte> buffer)
+        {
+            if (_position > _bytes.Length || buffer.Length > _bytes.Length - _position)
+                throw new EndOfStreamException("The read exceeded the available test data.");
+
+            _bytes.AsSpan((int)_position, buffer.Length).CopyTo(buffer);
+            _position += buffer.Length;
+            return buffer.Length;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            Position = origin switch
+            {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => _position + offset,
+                SeekOrigin.End => _length + offset,
+                _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+            };
+            return Position;
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
     private static byte[] ReadAllBytes(Stream stream)
     {
         using var buffer = new MemoryStream();
