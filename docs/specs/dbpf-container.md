@@ -4,7 +4,7 @@
 
 - **Verified:** DBPF 1.0 with index 7.0, as used by the locally available SimCity 4 data files.
 - **Implemented:** Header validation, regular-index reading, and bounded reads of raw resource bytes.
-- **Planned:** Other container versions, hole-table interpretation, decompression, and resource-specific parsing.
+- **Planned:** Other container versions, hole-table interpretation, and resource-specific parsing. Compression is documented separately in [the compression specification](compression.md).
 
 All integer fields described here are unsigned 32-bit little-endian values unless stated otherwise. Offsets are relative to the beginning of the archive and lengths are measured in bytes.
 

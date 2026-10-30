@@ -105,6 +105,17 @@ public sealed class DbpfArchive : IDisposable
             entries.Add(entry);
         }
 
+        var compressedSizes = CompressionDirectory.Read(stream, entriesByTgi);
+        for (var index = 0; index < entries.Count; index++)
+        {
+            if (!compressedSizes.TryGetValue(entries[index].Identifier, out var uncompressedSize))
+                continue;
+
+            var entry = entries[index] with { UncompressedSize = uncompressedSize };
+            entries[index] = entry;
+            entriesByTgi[entry.Identifier] = entry;
+        }
+
         return new DbpfArchive(stream, leaveOpen, header, entries, entriesByTgi);
     }
 
@@ -121,6 +132,24 @@ public sealed class DbpfArchive : IDisposable
     {
         var entry = GetEntry(identifier);
         return new BoundedReadStream(_stream, _syncRoot, entry.Offset, entry.Size);
+    }
+
+    /// <summary>Opens a stream over decompressed resource bytes, or raw bytes when the resource is not compressed.</summary>
+    public Stream OpenDecompressed(Tgi identifier)
+    {
+        var entry = GetEntry(identifier);
+        if (!entry.IsCompressed)
+            return new BoundedReadStream(_stream, _syncRoot, entry.Offset, entry.Size);
+
+        if (entry.Size > int.MaxValue)
+            throw new NotSupportedException($"Resource {identifier} is too large to read into a managed byte array.");
+
+        var input = new byte[(int)entry.Size];
+        using (var stored = new BoundedReadStream(_stream, _syncRoot, entry.Offset, entry.Size))
+            stored.ReadExactly(input);
+
+        var output = RefPackDecompressor.Decompress(input, entry.UncompressedSize.GetValueOrDefault(), identifier);
+        return new MemoryStream(output, writable: false);
     }
 
     public void Dispose()
